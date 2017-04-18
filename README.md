@@ -10,6 +10,21 @@ In this challenge we'll create a database with the schema seen in Figure 1.  Up 
 
 Rather than writing SQL, we are going to write [Active Record migrations][RailsGuides Migrations].  We'll write one migration for each change that we want to make to our database.  We'll write a new migration file each time we want to add a table, add a column to an existing table, remove a column, rename a column, etc.  Any change we make to our database will be written in its own migration file.
 
+Why do we write migrations? Well imagine that you're a database administrator
+and one fine day a programmer asks you to make a change like add a NOT NULL or
+add a foreign key field. Where do you write this down? Is there a piece of code
+that records the change to the schema? Many large-scale organizations get
+around this by literally having a log book where the database admin writes down
+who requested what and why, who approved it and what the command was to enter
+it! What if, instead, you recorded that same transformation of the schema in a
+programming language? The transformation, or "migration" would live in git with
+a useful commit message, a date, etc. It would be a record of the
+transformation and, hopefully, the "undo" operation on that operation so it
+could be un-done. That's a good practice that Rails adopted and drove into the
+design of ActiveRecord.
+
+Instead of writing raw SQL like:
+
 ```SQL
 CREATE TABLE dogs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,7 +41,7 @@ CREATE TABLE dogs (
 *Figure 2.* SQL to create a dogs table based on Figure 1.
 
 ```ruby
-class CreateDogs < ActiveRecord::Migration
+class CreateDogs < ActiveRecord::Migration[5.0]
   def change
     create_table :dogs do |t|
       t.string   :name, { null: false, limit: 50 }
@@ -45,7 +60,7 @@ end
 
 To create the dogs table from Figure 1 in SQL, we would write code akin to what we see in Figure 2.  But, now we'll want to write Active Record migrations to do this.  An Active Record migration for creating this same dogs table is provided in the file `db/migrate/20140901164300_create_dogs.rb`, and its code can be seen in Figure 3.
 
-In the migration, we define a class that inherits from the class `ActiveRecord::Migration`—we get access to the behaviors necessary for working with the database through inheritance.  Our class is named `CreateDogs`.  The name of the class describes what this migration is doing; it creates the dogs table.
+In the migration, we define a class that inherits from the class `ActiveRecord::Migration[5.0]`—we get access to the behaviors necessary for working with the database through inheritance.  Our class is named `CreateDogs`.  The name of the class describes what this migration is doing; it creates the dogs table.
 
 Then we define a `#change` method for our class.  This method defines what changes we want to make to our database.  What change will this migration make?
 
@@ -70,12 +85,20 @@ It is a mark of the best developers that they are always thinking about how to h
 
 - The second half of the file name (i.e., after the timestamp) must match the name of the class written in the migration:  `_create_dogs.rb` and `CreateDogs`.
 
-- The class defined in the migration inherits from the class `ActiveRecord::Migration`.  This gives the class access to behaviors for updating the database—methods like `create_table`, [`add_column`][APIDock Add Column], etc.
+- The class defined in the migration inherits from the class `ActiveRecord::Migration[5.0]`).  This gives the class access to behaviors for updating the database—methods like `create_table`, [`add_column`][APIDock Add Column], etc.
 
 - No *id* column is specified in the migration.  An id column is created automatically—unless you specify not to.  The id field is an autoincrementing integer field.
 
 - Rather than explicitly creating *created_at* and *updated_at* columns, there is a shortcut method for creating them:  `#timestamps`.
 
+- Earlier we mentioned that migrations should be reversible. Migrations written
+  with `#change` already have their "reverse" built-in. You may encounter
+  older migrations that have a `self.up` and a `self.down` method. The
+  `self.up` method is the change and `self.down` is the reverse change. You may
+  be amazed to think of this: every time you type a character, or bold a word
+  in most word processors it stores the change and the anti-change. That's how
+  Undo features work: they apply the last "counter-action" and toss it aside
+  (an example of a Stack data structure).
 
 ## Releases
 
